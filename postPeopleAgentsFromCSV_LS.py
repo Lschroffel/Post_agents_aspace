@@ -2,6 +2,7 @@ import json
 import requests
 import time
 import csv
+import sys
 from datetime import datetime
 
 secretsVersion = input('To edit production server, enter the name of the \
@@ -37,45 +38,62 @@ f.writerow(['sortName'] + ['uri'])
 
 csvfile = csv.DictReader(open(targetFile))
 
+def get_multiple_names():
+    names = []
+    for i in range(1,4): #range of 3
+        if i == 1:
+            extension = ''
+        else:
+            extension = str(i)
+        name = {}
+        name['primary_name'] = row['primaryName'+extension]
+        name['name_order'] = 'inverted'
+        name['jsonmodel_type'] = 'name_person'
+        name['rules'] = 'rda'
+        name['sort_name'] = row['sortName'+extension]
+        try:
+            name['authority_id'] = row['authorityID'+extension]
+            name['source'] = row['source'+extension]
+        except ValueError:
+            pass
+        try:
+            name['rest_of_name'] = row['restOfName'+extension]
+        except ValueError:
+            name['name_order'] = 'direct'
+        try:
+            name['fuller_form'] = row['fullerForm'+extension]
+        except ValueError:
+            pass
+        try:
+            name['title'] = row['title'+extension]
+        except ValueError:
+            pass
+        try:
+            name['prefix'] = row['prefix'+extension]
+        except ValueError:
+            pass
+        try:
+            name['suffix'] = row['suffix'+extension]
+        except ValueError:
+            pass
+        try:
+            name['dates'] = row['date'+extension]
+        except ValueError:
+            pass
+        if i > 1:
+            name['is_display_name'] = False
+        if name['primary_name']:
+            names.append(name)
+        else:
+            print("skipping name because empty primaryname xxxx!!!!!!")
+    return names
+        
+        
+
+
 for row in csvfile:
     agentRecord = {}
-    names = []
-    name = {}
-    name['primary_name'] = row['primaryName']
-    name['name_order'] = 'inverted'
-    name['jsonmodel_type'] = 'name_person'
-    name['rules'] = 'rda'
-    name['sort_name'] = row['sortName']
-    try:
-        name['authority_id'] = row['authorityID']
-        name['source'] = 'VIAF'
-    except ValueError:
-        pass
-    try:
-        name['rest_of_name'] = row['restOfName']
-    except ValueError:
-        name['name_order'] = 'direct'
-    try:
-        name['fuller_form'] = row['fullerForm']
-    except ValueError:
-        pass
-    try:
-        name['title'] = row['title']
-    except ValueError:
-        pass
-    try:
-        name['prefix'] = row['prefix']
-    except ValueError:
-        pass
-    try:
-        name['suffix'] = row['suffix']
-    except ValueError:
-        pass
-    try:
-        name['dates'] = row['date']
-    except ValueError:
-        pass
-    names.append(name)
+    names = get_multiple_names()
 
     if row['date'] != '':
         dates = []
@@ -101,7 +119,7 @@ for row in csvfile:
     agentRecord['names'] = names
     agentRecord['publish'] = True
     agentRecord['jsonmodel_type'] = 'agent_person'
-    agentRecord = json.dumps(agentRecord)
+    agentRecord = json.dumps(agentRecord, indent=2)
     print(agentRecord)
     post = requests.post(baseURL + '/agents/people', headers=headers,
                          data=agentRecord).json()
